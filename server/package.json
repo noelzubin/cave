@@ -1,0 +1,39 @@
+{
+  "name": "cavesplit",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "dependencies": {
+    "@fastify/cors": "^8.5.0",
+    "@fastify/static": "^6.12.0",
+    "@trpc/server": "^10.44.1",
+    "chalk": "^5.3.0",
+    "cmd-ts": "^0.13.0",
+    "db": "workspace:*",
+    "env": "workspace:*",
+    "fastify": "^4.24.3",
+    "mongoose": "^8.0.3",
+    "open-graph-scraper": "github:noelzubin/openGraphScraper",
+    "p-limit": "^3.0.2",
+    "rss": "workspace:*",
+    "rss-parser": "^3.13.0",
+    "superjson": "^2.2.1",
+    "youtube": "workspace:*",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.6",
+    "typescript": "^5.3.3"
+  }
+}

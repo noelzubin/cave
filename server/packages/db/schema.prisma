@@ -1,0 +1,71 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model entry {
+  id          Int       @id @default(autoincrement())
+  feedId      Int
+  title       String
+  author      String?
+  pubDate     DateTime?
+  description String?
+  content     String?
+  link        String?
+  readAt      DateTime?
+  createdAt   DateTime? @default(now())
+  deletedAt   DateTime? @default(now())
+  feed        feed      @relation(fields: [feedId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([pubDate], map: "entries_pub_date")
+  @@index([feedId, pubDate], map: "entries_feed_id_and_pub_date")
+}
+
+model folder {
+  id   Int    @id @default(autoincrement())
+  name String @unique(map: "sqlite_autoindex_folder_1")
+  feed feed[]
+}
+
+model feed {
+  id          Int       @id @default(autoincrement())
+  title       String
+  feedLink    String?   @unique(map: "sqlite_autoindex_feed_1")
+  link        String?
+  refreshedAt DateTime?
+  folderId    Int
+  createdAt   DateTime? @default(now())
+  updatedAt   DateTime? @default(now())
+  entry       entry[]
+  folder      folder    @relation(fields: [folderId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model bookmark {
+  id          Int           @id @default(autoincrement())
+  url         String        @unique(map: "sqlite_autoindex_bookmark_1")
+  title       String
+  imageUrl    String?
+  description String?
+  faviconUrl  String?
+  createdAt   String        @default("CURRENT_TIMESTAMP")
+  bookmarkTag bookmarkTag[]
+}
+
+model bookmarkTag {
+  bookmarkId Int
+  tagId      Int
+  tag        tag      @relation(fields: [tagId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  bookmark   bookmark @relation(fields: [bookmarkId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([bookmarkId, tagId])
+}
+
+model tag {
+  id          Int           @id @default(autoincrement())
+  name        String        @unique(map: "sqlite_autoindex_tag_1")
+  bookmarkTag bookmarkTag[]
+}

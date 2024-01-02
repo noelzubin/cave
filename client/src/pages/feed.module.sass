@@ -1,0 +1,29 @@
+.iFrame
+    outline: none
+    border: 1px solid #ccc
+
+.feedMenuItem
+    display: flex
+    justify-content: space-between
+    max-width: 100%
+    & > div:first-child
+        overflow: hidden
+        text-overflow: ellipsis
+
+.feedMenu
+    :global( .ant-menu-submenu > .ant-menu-submenu-title)
+        height: 1.5rem
+        line-height: 1.5rem
+    :global(.ant-menu-item)
+        height: 1.5rem
+        line-height: 1.5rem
+
+.feedHeader
+    display: flex
+    margin: 1rem 0
+    justify-content: space-between
+    h3
+        margin: 0
+    p
+        margin: 0
+
