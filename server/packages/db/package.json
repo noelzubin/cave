@@ -3,9 +3,12 @@
   "version": "1.0.0",
   "description": "",
   "main": "dist/index",
-  "files": ["dist"],
+  "type": "module",
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "swc . -d dist",
     "test": "echo \"Error: no test specified\" && exit 1",
     "postinstall": "prisma generate"
   },
@@ -13,11 +16,13 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@swc/cli": "^0.3.9",
+    "@swc/core": "^1.4.0",
     "prisma": "^5.1.1",
     "typescript": "^5.1.6"
   },
   "dependencies": {
-    "db": "workspace:*",
-    "@prisma/client": "5.2.0"
+    "@prisma/client": "5.2.0",
+    "db": "workspace:*"
   }
 }

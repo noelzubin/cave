@@ -1,0 +1,16 @@
+{
+  "sourceMaps": "inline",
+  "exclude": "node_modules",
+  "jsc": {
+    "externalHelpers": false,
+    "target": "es2022",
+    "parser": {
+      "syntax": "typescript"
+    },
+    "transform": {
+      "legacyDecorator": true,
+      "decoratorMetadata": false,
+    },
+    "keepClassNames": true
+  }
+}

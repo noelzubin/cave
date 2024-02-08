@@ -156,6 +156,7 @@ const refresh = command({
     id: option({ type: number, long: 'id', defaultValue: () => 0 })
   },
   handler: async ({ id }) => {
+    console.log("WHAT")
     const ids = id == 0 ? [] : [id];
     await feedUsecase.refreshFeeds(ids);
   },

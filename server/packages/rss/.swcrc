@@ -1,0 +1,21 @@
+{
+ "exclude": "node_modules",
+  "sourceMaps": "inline",
+  "module": {
+    "strict": false
+    "type": "es6",
+  },
+  "jsc": {
+    "externalHelpers": false,
+    "target": "es2022",
+    "parser": {
+      "syntax": "typescript"
+    },
+    "transform": {
+      "legacyDecorator": true,
+      "decoratorMetadata": false,
+    },
+    "keepClassNames": true
+  }
+}
+
