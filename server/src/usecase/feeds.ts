@@ -31,6 +31,7 @@ export interface Entry {
   read: boolean;
   link: string;
   pubTime: Date;
+  feedId: number;
 }
 
 export interface PaginatedEntries {
@@ -93,6 +94,7 @@ export class FeedUsecase implements IFeedUsecase {
       read: !!entry.readAt,
       link: entry.link!,
       pubTime: entry.pubDate ?? new Date(),
+      feedId: entry.feedId,
     };
   }
 
@@ -120,6 +122,7 @@ export class FeedUsecase implements IFeedUsecase {
       read: !!e.readAt,
       link: e.link!,
       pubTime: e.pubDate ?? new Date(),
+      feedId: e.feedId
     }));
 
     return {
@@ -188,6 +191,7 @@ export class FeedUsecase implements IFeedUsecase {
             description: item.summary,
             link: item.link,
             pubDate: this.getDate(item.isoDate),
+            feedId: item.feedId,
           })),
         },
       },

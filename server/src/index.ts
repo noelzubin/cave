@@ -120,9 +120,6 @@ const server = command({
 
     server.register(cors, {});
 
-    console.log("path.resolve()", path.resolve());
-    console.log(path.join(path.resolve(), "./dist/client"));
-
     server.register(fastifyStatic, {
       prefix: "/",
       root: path.join(path.resolve(), "./dist/client"),
@@ -133,7 +130,6 @@ const server = command({
       trpcOptions: { router: appRouter, createContext },
     });
 
-    console.log("what is going on e");
     (async () => {
       try {
         console.log("gonna listen");
@@ -209,7 +205,7 @@ const createTag = command({
   args: {
     tag: positional({ type: string, displayName: "tag" })
   },
-  handler: async({ tag }) => {
+  handler: async ({ tag }) => {
     await bookmarkUsecase.createTag(tag);
   }
 })
@@ -226,14 +222,14 @@ const bookmarkEdit = command({
       defaultValue: () => "",
     }),
   },
-  handler: async({ id }) => {
+  handler: async ({ id }) => {
     await bookmarkUsecase.editBookmark(id, { tagIds: [1] });
   }
 })
 
 const bookmark = subcommands({
   name: "bookmarks",
-  description: "manage bookmarks",
+  description: "Manage bookmarks",
   cmds: {
     'add': bookmarkAdd,
     'del': bookmarkDel,
@@ -250,3 +246,5 @@ const appname = subcommands({
 });
 
 run(binary(appname), process.argv).then(console.log).catch(console.error);
+
+

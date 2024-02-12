@@ -2,8 +2,8 @@
  "exclude": "node_modules",
   "sourceMaps": "inline",
   "module": {
-    "strict": false
-    "type": "es6",
+    "strict": false,
+    "type": "es6"
   },
   "jsc": {
     "externalHelpers": false,

@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import logo from "./logo.svg";
 import "./App.css";
 import { createTRPCReact } from "@trpc/react-query";
-import type { AppRouter } from "../../server/api/root";
+import type { AppRouter } from "../../server/src/api/root";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { httpBatchLink } from "@trpc/client";
 import superjson from "superjson";

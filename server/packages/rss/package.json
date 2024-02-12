@@ -2,10 +2,10 @@
   "name": "rss",
   "version": "1.0.0",
   "description": "",
-  "main": "dist/index",
+  "main": "dist/src/index",
   "type": "module",
   "scripts": {
-    "build": "swc . -d dist",
+    "build": "swc src -d dist",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

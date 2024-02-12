@@ -1,7 +1,7 @@
 import { CheckCircleOutlined, PlusCircleOutlined } from "@ant-design/icons";
 import { Button, ConfigProvider, List, message } from "antd";
 import { FC } from "react";
-import { Entry } from "../../../../../server/usecase/feeds";
+import { Entry, Feed } from "../../../../../server/src/usecase/feeds";
 import { trpc } from "../../../App";
 import { getRelDate } from "../../../utils/reldate";
 import s from "./index.module.sass";
@@ -12,6 +12,8 @@ interface IFeedsProps {
   entiresInput: IEntriesInput;
   total: number;
   onPageChange: (page: number) => void;
+  showFeedName: boolean;
+  feeds: Feed[];
 }
 
 const FeedsList: FC<IFeedsProps> = ({
@@ -19,6 +21,8 @@ const FeedsList: FC<IFeedsProps> = ({
   entiresInput,
   onPageChange,
   total,
+  showFeedName = false,
+  feeds,
 }) => {
   const utils = trpc.useContext();
 
@@ -54,6 +58,16 @@ const FeedsList: FC<IFeedsProps> = ({
       }
       throw e;
     }
+  };
+
+  const renderFeedName = (e: Entry) => {
+    if (!showFeedName) return null;
+
+    return (
+      <span className={s.feedTitle}>
+        {feeds.find((f) => f.id == e.feedId)!.title}
+      </span>
+    );
   };
 
   return (
@@ -109,7 +123,10 @@ const FeedsList: FC<IFeedsProps> = ({
             ]}
           >
             <div className={s.entry}>
-              <span className={s.title}>{item.title}</span>
+              <span>
+                {renderFeedName(item)}
+                <span className={s.title}>{item.title}</span>
+              </span>
               <span className={s.pubTime}>{getRelDate(item.pubTime)}</span>
             </div>
           </List.Item>

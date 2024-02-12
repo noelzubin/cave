@@ -359,9 +359,11 @@ export default function Home() {
                 {getHeader()}
                 {entries.data && feeds.data && (
                   <FeedsList
+                    showFeedName={entriesInput.feedId === undefined}
                     total={entries.data.total}
                     entries={entries.data.entries}
                     entiresInput={entriesInput}
+                    feeds={feeds.data}
                     onPageChange={(page) => {
                       setEntriesInput((prev) => ({ ...prev, page }));
                     }}
