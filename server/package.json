@@ -4,9 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "swc src -d dist",
+    "build": "tsc",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon -e ts -i dist -x \"pnpm run build && cave server\""
+    "dev": "./scripts/dev.fish"
   },
   "keywords": [],
   "author": "",

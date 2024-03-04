@@ -12,6 +12,7 @@ import {
   RouterProvider,
 } from "react-router-dom";
 import Bookmarks from "./pages/bookmarks";
+import Revise from "./pages/revise";
 
 const router = createBrowserRouter([
   {
@@ -21,6 +22,10 @@ const router = createBrowserRouter([
   {
     path: "bookmarks",
     element: <Bookmarks />
+  },
+  {
+    path: "revise",
+    element: <Revise />
   },
 ]);
 

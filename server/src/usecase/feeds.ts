@@ -191,8 +191,7 @@ export class FeedUsecase implements IFeedUsecase {
             description: item.summary,
             link: item.link,
             pubDate: this.getDate(item.isoDate),
-            feedId: item.feedId,
-          })),
+          }))
         },
       },
     });

@@ -69,3 +69,31 @@ model tag {
   name        String        @unique(map: "sqlite_autoindex_tag_1")
   bookmarkTag bookmarkTag[]
 }
+
+model reviseCards {
+  id           Int            @id @default(autoincrement())
+  deckId       Int
+  desc         String
+  nextShowDate String
+  createdAt    DateTime       @default(now())
+  reviseDecks  reviseDecks    @relation(fields: [deckId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  reviseRevlog reviseRevlog[]
+}
+
+model reviseDecks {
+  id          Int           @id @default(autoincrement())
+  name        String        @unique(map: "reviseDecksNameKey")
+  createdAt   DateTime      @default(now())
+  reviseCards reviseCards[]
+}
+
+model reviseRevlog {
+  id           Int         @id @default(autoincrement())
+  cardId       Int
+  lastInterval Int
+  interval     Int
+  reviewTime   String
+  stability    Float
+  difficulty   Float
+  reviseCards  reviseCards @relation(fields: [cardId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}

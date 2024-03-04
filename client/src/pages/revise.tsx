@@ -22,11 +22,12 @@ import { trpc } from "../App";
 import s from "./bookmarks.module.sass";
 import type { Bookmark } from "../../../server/src/usecase/bookmark";
 import BookmarkComp from "../components/bookmark/Bookmark";
+import { Deck } from "../../../server/src/usecase/revise";
 
 interface BookmarkCreate {
   url: string;
 }
-interface TagCreate {
+interface DeckCreate {
   name: string;
 }
 
@@ -52,14 +53,14 @@ const Bookmarks = () => {
   const [query, setQuery] = useState("");
   const [showAddBookmarkForm, setShowAddBookmarkForm] = useState(false);
   const [showAssignTagsModal, setShowAssignTagsModal] = useState(false);
-  const [showCreateTagForm, setShowCreateTagForm] = useState(false);
+  const [showCreateDeckForm, setShowCreateDeckForm] = useState(false);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [editBookmarkModal, setEditBookmarkModal] = useState<
     Bookmark | undefined
   >(undefined);
   const [bmCreateForm] = Form.useForm<BookmarkCreate>();
   const [bmEditForm] = Form.useForm<BookmarkEdit>();
-  const [createTagForm] = Form.useForm<TagCreate>();
+  const [createDeckForm] = Form.useForm<DeckCreate>();
   const [addTagsForm] = Form.useForm<AddTags>();
   const [tgs, setTgs] = useState<number[]>([]);
   const [listBookmarkQuery, setListBookmarkQuery] = useState<ListBookmarkQuery>(
@@ -71,16 +72,16 @@ const Bookmarks = () => {
   );
 
   const debQuery = useDebounce(query, 500);
-  const utils = trpc.useContext();
+  const utils = trpc.useUtils();
   const bulkUpdateBookmarks = trpc.bookmark.bulkUpdateBookmarks.useMutation({
     onSuccess: () => {
       void utils.bookmark.listBookmarks.refetch();
     },
   });
 
-  const addTag = trpc.bookmark.addTag.useMutation({
+  const addTag = trpc.revise.addDeck.useMutation({
     onSuccess: (data) => {
-      void utils.bookmark.listTags.refetch();
+      void utils.revise.listDecks.refetch();
     },
   });
   const createBookmark = trpc.bookmark.addBookmark.useMutation({
@@ -108,9 +109,8 @@ const Bookmarks = () => {
     trpc.bookmark.listBookmarks.useQuery<ListBookmarksResponse>(
       listBookmarkQuery
     );
-  const tags = trpc.bookmark.listTags.useQuery<BmTag[]>();
-  console.log(tags.data);
-
+  const decks = trpc.revise.listDecks.useQuery<Deck[]>();
+  console.log("DECKS " , decks)
 
   const onSelectBookmark = (id: number) => {
     if (selectedIds.includes(id)) {
@@ -128,14 +128,15 @@ const Bookmarks = () => {
         className: s.menuItem
       },
       {
-        key: "tags",
-        label: "Tags",
-        children: tags.data?.map((t) => ({
+        key: "decks",
+        label: "Decks",
+        children: decks.data?.map((t) => ({
           key: t.id,
           className: s.menuItem,
           label: (
             <div className={s.feedMenuItem}>
-              <div>{t.name}</div> <div>{t.count.toString()}</div>
+              <div>{t.name}</div> 
+              <div>{t.id.toString()}</div>
             </div>
           ),
         })),
@@ -150,9 +151,9 @@ const Bookmarks = () => {
   };
 
   const getOptions = () => {
-    if (!tags.data) return [];
+    if (!decks.data) return [];
 
-    return tags.data.map((t) => ({
+    return decks.data.map((t) => ({
       value: t.id,
       label: t.name,
     }));
@@ -189,6 +190,8 @@ const Bookmarks = () => {
   };
 
   const [showPlaceholder, setShowPlaceholder] = useState(false);
+
+  if(!decks.data) return <div>Loading...</div>
 
   return (
     <>
@@ -231,16 +234,16 @@ const Bookmarks = () => {
       </Modal>
       <Modal
         width={300}
-        title="Add a new Tag"
+        title="Add a new Deck"
         okText="Add"
-        open={showCreateTagForm}
-        onCancel={() => setShowCreateTagForm(false)}
+        open={showCreateDeckForm}
+        onCancel={() => setShowCreateDeckForm(false)}
         onOk={() => {
-          createTagForm
+          createDeckForm
             .validateFields()
             .then((values) => {
               addTag.mutate({ name: values.name });
-              setShowCreateTagForm(false);
+              setShowCreateDeckForm(false);
             })
             .catch((e) => {
               console.error(e);
@@ -248,12 +251,12 @@ const Bookmarks = () => {
         }}
       >
         <Form
-          form={createTagForm}
+          form={createDeckForm}
           name="basic"
           labelCol={{ span: 8 }}
           wrapperCol={{ span: 16 }}
         >
-          <Form.Item<TagCreate>
+          <Form.Item<DeckCreate>
             label="Name"
             name="name"
             rules={[{ required: true, message: "Please input the name!" }]}
@@ -369,10 +372,10 @@ const Bookmarks = () => {
             className={s.createTagBtn}
             type="text"
             onClick={() => {
-              setShowCreateTagForm(true);
+              setShowCreateDeckForm(true);
             }}
           >
-            + Create Tag
+            + Create Deck
           </Button>
         </AppSider>
         <Layout
@@ -422,7 +425,7 @@ const Bookmarks = () => {
           {listBookmarkQuery.tags.length > 0 && (
             <div className={s.queryTags}>
               {listBookmarkQuery.tags.map((t) => {
-                const tag = tags.data?.find((tg) => tg.id === t);
+                const tag = decks.data?.find((d) => d.id === t);
                 return (
                   <Tag
                     key={t}
@@ -442,7 +445,7 @@ const Bookmarks = () => {
           )}
 
           <div style={{ margin: "1rem" }}>
-            <List
+            {/* <List
               className={s.bookmarksList}
               dataSource={bookmarks.data?.bookmarks}
               grid={{ gutter: 8 }}
@@ -455,7 +458,7 @@ const Bookmarks = () => {
                   onDelete={onBookmarkDelete}
                   key={bm.id}
                   bookmark={bm}
-                  tags={tags.data ?? []}
+                  tags={decks.data ?? []}
                 />
               )}
               pagination={{
@@ -465,7 +468,7 @@ const Bookmarks = () => {
                 onChange: (page) =>
                   setListBookmarkQuery((prev) => ({ ...prev, page })),
               }}
-            />
+            /> */}
           </div>
         </Layout>
       </Layout>

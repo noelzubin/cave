@@ -5,6 +5,7 @@ import { Rss, RssParser } from "rss";
 import superjson from "superjson";
 import { ZodError } from "zod";
 import { BookmarkUsecase, IBookmarkUsecase } from "../usecase/bookmark.js";
+import { ReviseUsecase, IReviseUsecase } from "../usecase/revise.js";
 import { FeedUsecase, IFeedUsecase } from "../usecase/feeds.js";
 
 const db: DB = prisma;
@@ -15,11 +16,13 @@ const feedUsecase: IFeedUsecase = new FeedUsecase(
   process.env.YOUTUBE_TOKEN!
 );
 const bookmarkUsecase: IBookmarkUsecase = new BookmarkUsecase(db);
+const reviseUsecase: IReviseUsecase = new ReviseUsecase(db);
 
 export function createContext({ req, res }: CreateFastifyContextOptions) {
   return {
     bookmarkUsecase,
     feedUsecase,
+    reviseUsecase
   };
 }
 
