@@ -22,6 +22,7 @@ importers:
       rss: workspace:*
       rss-parser: ^3.13.0
       superjson: ^2.2.1
+      ts-fsrs: ^3.4.1
       typescript: ^5.3.3
       youtube: workspace:*
       zod: ^3.22.4
@@ -40,6 +41,7 @@ importers:
       rss: link:packages/rss
       rss-parser: 3.13.0
       superjson: 2.2.1
+      ts-fsrs: 3.4.1
       youtube: link:packages/youtube
       zod: 3.22.4
     devDependencies:
@@ -5027,6 +5029,10 @@ packages:
     resolution: {integrity: sha512-6aU+Rwsezw7VR8/nyvKTx8QpWH9FrcYiXXlqC4z5d5XQBDRqtbfsRjnwGyqbi3gddNtWHuEk9OANUotL26qKUw==}
     dev: false
 
+  /seedrandom/3.0.5:
+    resolution: {integrity: sha512-8OwmbklUNzwezjGInmZ+2clQmExQPvomqjL7LFqOYqtmuxRgQYqOD3mHaU+MvZn5FLUeVxVfQjwLZW/n/JFuqg==}
+    dev: false
+
   /semver-regex/4.0.5:
     resolution: {integrity: sha512-hunMQrEy1T6Jr2uEVjrAIqjwWcQTgOAcIM52C8MY1EZSD3DDNft04XzvYKPqjED65bNVVko0YI38nYeEHCX3yw==}
     engines: {node: '>=12'}
@@ -5544,6 +5550,13 @@ packages:
     dependencies:
       escape-string-regexp: 5.0.0
     dev: true
+
+  /ts-fsrs/3.4.1:
+    resolution: {integrity: sha512-IXN4LcwibnY++5X+2YGTL5kO+2IVLV8bF6KAGUXx0jbkxY9NEuraWiUJkh5bal5QpkxrFbEChxn8bZyh1oS2/w==}
+    engines: {node: '>=16.0.0'}
+    dependencies:
+      seedrandom: 3.0.5
+    dev: false
 
   /ts-node/10.9.2_5l6xuy6hsihvjfj5nviqv353iy:
     resolution: {integrity: sha512-f0FFpIdcHgn8zcPSbf1dRevwt047YMnaiJM3u2w2RewrB+fob/zePZcrOyQoLMMO7aBIddLcQIEK5dYjkLnGrQ==}

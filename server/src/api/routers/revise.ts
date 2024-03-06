@@ -10,14 +10,30 @@ export const reviseRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const bookmark = await ctx.reviseUsecase.addDeck(
-        input.name,
-      );
+      const bookmark = await ctx.reviseUsecase.addDeck(input.name);
       return bookmark;
     }),
   listDecks: publicProcedure.query(async ({ ctx }) => {
     return await ctx.reviseUsecase.listDecks();
   }),
+  addCard: publicProcedure
+    .input(
+      z.object({
+        deckId: z.number(),
+        desc: z.string(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const card = await ctx.reviseUsecase.addCard(input.deckId, input.desc);
+      return card;
+    }),
+  listCards: publicProcedure
+    .input(z.object({
+      deckId: z.number(),
+    }))
+    .query(async ({ ctx, input }) => {
+      return ctx.reviseUsecase.listCards(input.deckId);
+    }),
   editBookmark: publicProcedure
     .input(
       z.object({
@@ -37,7 +53,7 @@ export const reviseRouter = createTRPCRouter({
       });
       return bookmark;
     }),
-  
+
   addTag: publicProcedure
     .input(z.object({ name: z.string() }))
     .mutation(async ({ ctx, input }) => {

@@ -30,6 +30,7 @@
     "rss": "workspace:*",
     "rss-parser": "^3.13.0",
     "superjson": "^2.2.1",
+    "ts-fsrs": "^3.4.1",
     "youtube": "workspace:*",
     "zod": "^3.22.4"
   },

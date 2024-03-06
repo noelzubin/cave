@@ -5,7 +5,7 @@ import s from './index.module.sass';
 import type {
     Bookmark,
     Tag as BmTag,
-  } from "../../../../../server/usecase/bookmark";
+  } from "../../../../../server/src/usecase/bookmark";
 import { DeleteOutlined, EditOutlined } from "@ant-design/icons";
 const { Header } = Layout;
 const { Meta } = Card;

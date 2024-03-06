@@ -2,6 +2,9 @@ import { DeleteOutlined } from "@ant-design/icons";
 import {
   Button,
   Card,
+  Divider,
+  Drawer,
+  Flex,
   Form,
   Input,
   Layout,
@@ -17,15 +20,20 @@ import { useEffect, useState } from "react";
 import AppSider from "../components/AppSider";
 import SearchHeader from "../components/SearchHeader";
 import { useDebounce } from "../components/useDebounce";
-import { Tag as BmTag, ListBookmarksResponse } from "../../../server/src/usecase/bookmark";
+import {
+  Tag as BmTag,
+  ListBookmarksResponse,
+} from "../../../server/src/usecase/bookmark";
 import { trpc } from "../App";
-import s from "./bookmarks.module.sass";
+import s from "./revise.module.sass";
 import type { Bookmark } from "../../../server/src/usecase/bookmark";
 import BookmarkComp from "../components/bookmark/Bookmark";
-import { Deck } from "../../../server/src/usecase/revise";
+import { Deck, Card as RevCard } from "../../../server/src/usecase/revise";
+import TextArea from "antd/es/input/TextArea";
 
-interface BookmarkCreate {
-  url: string;
+
+interface CardCreate {
+  desc: string;
 }
 interface DeckCreate {
   name: string;
@@ -51,18 +59,20 @@ interface ListBookmarkQuery {
 const Bookmarks = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [query, setQuery] = useState("");
-  const [showAddBookmarkForm, setShowAddBookmarkForm] = useState(false);
+  const [showAddCardForm, setShowAddCardForm] = useState(false);
   const [showAssignTagsModal, setShowAssignTagsModal] = useState(false);
   const [showCreateDeckForm, setShowCreateDeckForm] = useState(false);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [editBookmarkModal, setEditBookmarkModal] = useState<
     Bookmark | undefined
   >(undefined);
-  const [bmCreateForm] = Form.useForm<BookmarkCreate>();
+  const [cardCreateForm] = Form.useForm<CardCreate>();
   const [bmEditForm] = Form.useForm<BookmarkEdit>();
   const [createDeckForm] = Form.useForm<DeckCreate>();
   const [addTagsForm] = Form.useForm<AddTags>();
   const [tgs, setTgs] = useState<number[]>([]);
+  const [selectedDeckId, setSelectedDeckId] = useState<number>(1); // Notes is selected by default
+  const [listCardsQuery, setListCardsQuery] = useState({});
   const [listBookmarkQuery, setListBookmarkQuery] = useState<ListBookmarkQuery>(
     {
       page: 1,
@@ -79,12 +89,14 @@ const Bookmarks = () => {
     },
   });
 
+
+  const cards = trpc.revise.listCards.useQuery<RevCard[]>({ deckId: selectedDeckId});
   const addTag = trpc.revise.addDeck.useMutation({
     onSuccess: (data) => {
       void utils.revise.listDecks.refetch();
     },
   });
-  const createBookmark = trpc.bookmark.addBookmark.useMutation({
+  const createCard = trpc.revise.addCard.useMutation({
     onSuccess: (data) => {
       void utils.bookmark.listBookmarks.refetch();
     },
@@ -100,7 +112,6 @@ const Bookmarks = () => {
     },
   });
 
-
   useEffect(() => {
     setListBookmarkQuery((prev) => ({ ...prev, query: debQuery }));
   }, [debQuery]);
@@ -110,7 +121,7 @@ const Bookmarks = () => {
       listBookmarkQuery
     );
   const decks = trpc.revise.listDecks.useQuery<Deck[]>();
-  console.log("DECKS " , decks)
+  console.log("DECKS ", decks);
 
   const onSelectBookmark = (id: number) => {
     if (selectedIds.includes(id)) {
@@ -121,29 +132,18 @@ const Bookmarks = () => {
   };
 
   const buildOptions = () => {
-    const options: ItemType[] = [
-      {
-        key: "all",
-        label: "All",
-        className: s.menuItem
-      },
-      {
-        key: "decks",
-        label: "Decks",
-        children: decks.data?.map((t) => ({
-          key: t.id,
-          className: s.menuItem,
-          label: (
-            <div className={s.feedMenuItem}>
-              <div>{t.name}</div> 
-              <div>{t.id.toString()}</div>
-            </div>
-          ),
-        })),
-      },
-    ];
+    if (decks.data == undefined) return [];
 
-    return options;
+    return decks.data.map((t) => ({
+      key: t.id,
+      className: s.menuItem,
+      label: (
+        <div className={s.feedMenuItem}>
+          <div>{t.name}</div>
+          <div>{t.id.toString()}</div>
+        </div>
+      ),
+    }));
   };
 
   const onBookmarkDelete = (id: number) => {
@@ -176,22 +176,14 @@ const Bookmarks = () => {
   const onSelect: (params: { selectedKeys: string[] }) => void = ({
     selectedKeys,
   }) => {
-    if (selectedKeys[0] === "all") {
-      setListBookmarkQuery((prev) => ({ ...prev, tags: [] }));
-    } else {
-      const newTagId = Number(selectedKeys[0]);
-      const prev = listBookmarkQuery.tags.find((t) => t === newTagId);
-      if (!prev)
-        setListBookmarkQuery((prev) => ({
-          ...prev,
-          tags: prev.tags.concat([newTagId]),
-        }));
-    }
+    if (selectedKeys.length === 0) return
+
+    setSelectedDeckId(parseInt(selectedKeys[0]))
   };
 
   const [showPlaceholder, setShowPlaceholder] = useState(false);
 
-  if(!decks.data) return <div>Loading...</div>
+  if (!decks.data) return <div>Loading...</div>;
 
   return (
     <>
@@ -266,17 +258,17 @@ const Bookmarks = () => {
         </Form>
       </Modal>
       <Modal
-        width={300}
-        title="Add a new Bookmark"
+        width={500}
+        title="Add a new Card"
         okText="Add"
-        open={showAddBookmarkForm}
-        onCancel={() => setShowAddBookmarkForm(false)}
+        open={showAddCardForm}
+        onCancel={() => setShowAddCardForm(false)}
         onOk={() => {
-          bmCreateForm
+          cardCreateForm
             .validateFields()
             .then((values) => {
-              createBookmark.mutate({ url: values.url, title: values.url });
-              setShowAddBookmarkForm(false);
+              createCard.mutate({ deckId: selectedDeckId, desc: values.desc });
+              setShowAddCardForm(false);
             })
             .catch((e) => {
               console.error(e);
@@ -284,17 +276,20 @@ const Bookmarks = () => {
         }}
       >
         <Form
-          form={bmCreateForm}
+          form={cardCreateForm}
           name="basic"
-          labelCol={{ span: 4 }}
-          wrapperCol={{ span: 20 }}
+          labelCol={{ span: 6 }}
+          wrapperCol={{ span: 18 }}
         >
-          <Form.Item<BookmarkCreate>
-            label="Url"
-            name="url"
-            rules={[{ required: true, message: "Please input the Url!" }]}
+          <Form.Item<CardCreate>
+            label="Desc "
+            name="desc"
+            rules={[{ required: true, message: "Please input the Description!" }]}
           >
-            <Input />
+            <TextArea
+              placeholder="Content"
+              autoSize={{ minRows: 3, maxRows: 5 }}
+            />
           </Form.Item>
         </Form>
       </Modal>
@@ -366,6 +361,7 @@ const Bookmarks = () => {
             mode="inline"
             items={buildOptions()}
             onSelect={onSelect}
+            selectedKeys={[selectedDeckId.toString()]}
             style={{ marginTop: 8 }}
           />
           <Button
@@ -386,20 +382,14 @@ const Bookmarks = () => {
             query={query}
             onQueryChange={setQuery}
             right={
-              <>
-                <Switch
-                  checked={showPlaceholder}
-                  onChange={() => setShowPlaceholder((prev) => !prev)}
-                />
-                <Button
-                  type="primary"
-                  onClick={() => {
-                    setShowAddBookmarkForm(true);
-                  }}
-                >
-                  Add Bookmark
-                </Button>
-              </>
+              <Button
+                type="primary"
+                onClick={() => {
+                  setShowAddCardForm(true);
+                }}
+              >
+                Add Card
+              </Button>
             }
           />
 
@@ -445,30 +435,55 @@ const Bookmarks = () => {
           )}
 
           <div style={{ margin: "1rem" }}>
-            {/* <List
-              className={s.bookmarksList}
-              dataSource={bookmarks.data?.bookmarks}
-              grid={{ gutter: 8 }}
-              renderItem={(bm) => (
-                <BookmarkComp
-                  onSelect={onSelectBookmark}
-                  selectedIds={selectedIds}
-                  showPlaceholder={showPlaceholder}
-                  onEdit={onBookmarkEdit}
-                  onDelete={onBookmarkDelete}
-                  key={bm.id}
-                  bookmark={bm}
-                  tags={decks.data ?? []}
-                />
+            <List
+              header={<h2>Ready</h2>}
+              className={s.reviseGrid}
+              dataSource={cards.data}
+              renderItem={(card) => (
+                <Card size="small" style={{ width: 300 }}>
+                  <div dangerouslySetInnerHTML={{ __html: card.desc }} />
+                  <Divider />
+                  <p>Due: {card.nextShowDate.toString()}</p>
+                </Card>
               )}
-              pagination={{
-                pageSize: 50,
-                total: bookmarks.data?.total ?? 0,
-                current: listBookmarkQuery.page,
-                onChange: (page) =>
-                  setListBookmarkQuery((prev) => ({ ...prev, page })),
-              }}
-            /> */}
+            ></List>
+
+            <Divider />
+            <List
+              header={<h2>Upcoming</h2>}
+              className={s.reviseGrid}
+              dataSource={Array(6).fill(0)}
+              renderItem={(item) => (
+                <Card size="small" style={{ width: 300 }}>
+                  <p>Card content</p>
+                  <a href="https://www.google.com">code</a>
+                  <Divider />
+                  <p>Due: Today</p>
+                </Card>
+              )}
+            ></List>
+
+            <Drawer title="Basic Drawer" onClose={() => {}} open={false}>
+              <TextArea
+                onChange={(e) => {}}
+                placeholder="Content"
+                autoSize={{ minRows: 3, maxRows: 5 }}
+              />
+              <p> Due: Today </p>
+              <Flex gap="small" justify="end">
+                <Button >Save</Button>
+                <Button >Delete</Button>
+              </Flex>
+
+<Divider/>
+              <Flex gap="large" justify="center">
+                <Button>0</Button>
+                <Button>1</Button>
+                <Button>2</Button>
+                <Button>3</Button>
+                <Button>4</Button>
+              </Flex>
+            </Drawer>
           </div>
         </Layout>
       </Layout>

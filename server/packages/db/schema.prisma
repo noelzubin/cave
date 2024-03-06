@@ -74,7 +74,7 @@ model reviseCards {
   id           Int            @id @default(autoincrement())
   deckId       Int
   desc         String
-  nextShowDate String
+  nextShowDate DateTime
   createdAt    DateTime       @default(now())
   reviseDecks  reviseDecks    @relation(fields: [deckId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   reviseRevlog reviseRevlog[]
