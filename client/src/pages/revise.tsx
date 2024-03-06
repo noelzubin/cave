@@ -15,22 +15,24 @@ import {
   Switch,
   Tag,
 } from "antd";
+import snarkdown from "snarkdown";
 import { ItemType } from "antd/es/menu/hooks/useItems";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import AppSider from "../components/AppSider";
 import SearchHeader from "../components/SearchHeader";
 import { useDebounce } from "../components/useDebounce";
-import {
-  Tag as BmTag,
-  ListBookmarksResponse,
-} from "../../../server/src/usecase/bookmark";
 import { trpc } from "../App";
 import s from "./revise.module.sass";
-import type { Bookmark } from "../../../server/src/usecase/bookmark";
-import BookmarkComp from "../components/bookmark/Bookmark";
-import { Deck, Card as RevCard } from "../../../server/src/usecase/revise";
+import {
+  Deck,
+  DeckWithCount,
+  FullCard,
+  Card as RevCard,
+} from "../../../server/src/usecase/revise";
 import TextArea from "antd/es/input/TextArea";
-
+import { convertToObject } from "typescript";
+import { getDueFromNow } from "../utils/reldate";
+import { unitless } from "antd/es/theme/useToken";
 
 interface CardCreate {
   desc: string;
@@ -39,47 +41,20 @@ interface DeckCreate {
   name: string;
 }
 
-interface AddTags {
-  tags: number[];
-}
-
-interface BookmarkEdit {
-  title: string;
-  description: string;
-  imageUrl: string;
-  tags: number[];
-}
-
-interface ListBookmarkQuery {
-  tags: number[];
-  query: string;
-  page: number;
-}
-
-const Bookmarks = () => {
+const Revise = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [query, setQuery] = useState("");
   const [showAddCardForm, setShowAddCardForm] = useState(false);
   const [showAssignTagsModal, setShowAssignTagsModal] = useState(false);
   const [showCreateDeckForm, setShowCreateDeckForm] = useState(false);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
-  const [editBookmarkModal, setEditBookmarkModal] = useState<
-    Bookmark | undefined
-  >(undefined);
   const [cardCreateForm] = Form.useForm<CardCreate>();
-  const [bmEditForm] = Form.useForm<BookmarkEdit>();
   const [createDeckForm] = Form.useForm<DeckCreate>();
-  const [addTagsForm] = Form.useForm<AddTags>();
   const [tgs, setTgs] = useState<number[]>([]);
   const [selectedDeckId, setSelectedDeckId] = useState<number>(1); // Notes is selected by default
   const [listCardsQuery, setListCardsQuery] = useState({});
-  const [listBookmarkQuery, setListBookmarkQuery] = useState<ListBookmarkQuery>(
-    {
-      page: 1,
-      query,
-      tags: [],
-    }
-  );
+  const [selectedCardId, setSelectedCardId] = useState<number | null>();
+
 
   const debQuery = useDebounce(query, 500);
   const utils = trpc.useUtils();
@@ -89,8 +64,9 @@ const Bookmarks = () => {
     },
   });
 
-
-  const cards = trpc.revise.listCards.useQuery<RevCard[]>({ deckId: selectedDeckId});
+  const cards = trpc.revise.listCards.useQuery<RevCard[]>({
+    deckId: selectedDeckId,
+  });
   const addTag = trpc.revise.addDeck.useMutation({
     onSuccess: (data) => {
       void utils.revise.listDecks.refetch();
@@ -98,7 +74,7 @@ const Bookmarks = () => {
   });
   const createCard = trpc.revise.addCard.useMutation({
     onSuccess: (data) => {
-      void utils.bookmark.listBookmarks.refetch();
+      void utils.revise.listCards.refetch();
     },
   });
   const editBookmark = trpc.bookmark.editBookmark.useMutation({
@@ -112,35 +88,18 @@ const Bookmarks = () => {
     },
   });
 
-  useEffect(() => {
-    setListBookmarkQuery((prev) => ({ ...prev, query: debQuery }));
-  }, [debQuery]);
-
-  const bookmarks =
-    trpc.bookmark.listBookmarks.useQuery<ListBookmarksResponse>(
-      listBookmarkQuery
-    );
-  const decks = trpc.revise.listDecks.useQuery<Deck[]>();
-  console.log("DECKS ", decks);
-
-  const onSelectBookmark = (id: number) => {
-    if (selectedIds.includes(id)) {
-      setSelectedIds((prev) => prev.filter((i) => i !== id));
-    } else {
-      setSelectedIds((prev) => [...prev, id]);
-    }
-  };
+  const decks = trpc.revise.listDecks.useQuery<DeckWithCount[]>();
 
   const buildOptions = () => {
     if (decks.data == undefined) return [];
 
-    return decks.data.map((t) => ({
-      key: t.id,
+    return decks.data.map((d) => ({
+      key: d.id,
       className: s.menuItem,
       label: (
         <div className={s.feedMenuItem}>
-          <div>{t.name}</div>
-          <div>{t.id.toString()}</div>
+          <div>{d.name}</div>
+          <div>{d.count}</div>
         </div>
       ),
     }));
@@ -159,26 +118,12 @@ const Bookmarks = () => {
     }));
   };
 
-  const onBookmarkEdit = (id: number) => {
-    if (!bookmarks.data) return;
-    const bookmark: Bookmark = bookmarks.data.bookmarks.find(
-      (b) => b.id === id
-    )!;
-    setEditBookmarkModal(bookmark);
-    bmEditForm.setFieldsValue({
-      title: bookmark.title,
-      description: bookmark.description,
-      imageUrl: bookmark.imageUrl,
-      tags: bookmark.tags,
-    });
-  };
-
   const onSelect: (params: { selectedKeys: string[] }) => void = ({
     selectedKeys,
   }) => {
-    if (selectedKeys.length === 0) return
+    if (selectedKeys.length === 0) return;
 
-    setSelectedDeckId(parseInt(selectedKeys[0]))
+    setSelectedDeckId(parseInt(selectedKeys[0]));
   };
 
   const [showPlaceholder, setShowPlaceholder] = useState(false);
@@ -187,43 +132,6 @@ const Bookmarks = () => {
 
   return (
     <>
-      <Modal
-        title="Assign Tags"
-        okText="Add"
-        open={showAssignTagsModal}
-        onCancel={() => setShowAssignTagsModal(false)}
-        onOk={() => {
-          addTagsForm
-            .validateFields()
-            .then((values) => {
-              bulkUpdateBookmarks.mutate({
-                ids: selectedIds,
-                tagsIds: values.tags,
-              });
-              setShowAssignTagsModal(false);
-              setSelectedIds([]);
-            })
-            .catch((e) => {
-              console.error(e);
-            });
-        }}
-      >
-        <Form
-          form={addTagsForm}
-          name="basic"
-          labelCol={{ span: 8 }}
-          wrapperCol={{ span: 16 }}
-        >
-          <Form.Item<AddTags> label="Tags" name="tags" required>
-            <Select
-              mode="multiple"
-              style={{ width: "100%" }}
-              options={getOptions()}
-              filterOption={(input, option) => option!.label.startsWith(input)}
-            />
-          </Form.Item>
-        </Form>
-      </Modal>
       <Modal
         width={300}
         title="Add a new Deck"
@@ -284,7 +192,9 @@ const Bookmarks = () => {
           <Form.Item<CardCreate>
             label="Desc "
             name="desc"
-            rules={[{ required: true, message: "Please input the Description!" }]}
+            rules={[
+              { required: true, message: "Please input the Description!" },
+            ]}
           >
             <TextArea
               placeholder="Content"
@@ -293,68 +203,11 @@ const Bookmarks = () => {
           </Form.Item>
         </Form>
       </Modal>
-      <Modal
-        title="Edit Bookmark"
-        okText="Update"
-        open={!!editBookmarkModal}
-        onCancel={() => setEditBookmarkModal(undefined)}
-        onOk={() => {
-          bmEditForm
-            .validateFields()
-            .then((values) => {
-              editBookmark.mutate({
-                id: editBookmarkModal!.id,
-                title: values.title,
-                description: values.description,
-                imageUrl: values.imageUrl,
-                tags: values.tags,
-              });
-              setEditBookmarkModal(undefined);
-            })
-            .catch((e) => {
-              console.error(e);
-            });
-        }}
-      >
-        <Form
-          form={bmEditForm}
-          name="basic"
-          labelCol={{ span: 6 }}
-          wrapperCol={{ span: 18 }}
-        >
-          <Layout>
-            {editBookmarkModal?.imageUrl && (
-              <img src={editBookmarkModal.imageUrl} />
-            )}
-          </Layout>
-          <Form.Item<BookmarkEdit>
-            label="Title"
-            name="title"
-            rules={[{ required: true, message: "Please input the Title" }]}
-          >
-            <Input />
-          </Form.Item>
-          <Form.Item<BookmarkEdit> label="Description" name="description">
-            <Input />
-          </Form.Item>
-          <Form.Item<BookmarkEdit> label="Image Url" name="imageUrl">
-            <Input />
-          </Form.Item>
-          <Form.Item<BookmarkEdit> label="Tags" name="tags">
-            <Select
-              mode="multiple"
-              style={{ width: "100%" }}
-              options={getOptions()}
-              filterOption={(input, option) => option!.label.startsWith(input)}
-            />
-          </Form.Item>
-        </Form>
-      </Modal>
       <Layout>
         <AppSider
           collapsed={collapsed}
           setCollapsed={setCollapsed}
-          pageId="bookmarks"
+          pageId="revise"
         >
           <Menu
             className={s.feedMenu}
@@ -412,77 +265,66 @@ const Bookmarks = () => {
             </Card>
           )}
 
-          {listBookmarkQuery.tags.length > 0 && (
-            <div className={s.queryTags}>
-              {listBookmarkQuery.tags.map((t) => {
-                const tag = decks.data?.find((d) => d.id === t);
-                return (
-                  <Tag
-                    key={t}
-                    closable
-                    onClose={() => {
-                      setListBookmarkQuery((prev) => ({
-                        ...prev,
-                        tags: prev.tags.filter((tg) => tg !== t),
-                      }));
-                    }}
-                  >
-                    {tag?.name}
-                  </Tag>
-                );
-              })}
-            </div>
-          )}
-
           <div style={{ margin: "1rem" }}>
             <List
               header={<h2>Ready</h2>}
               className={s.reviseGrid}
-              dataSource={cards.data}
+              dataSource={cards.data?.filter((c) => c.due < new Date())}
               renderItem={(card) => (
-                <Card size="small" style={{ width: 300 }}>
-                  <div dangerouslySetInnerHTML={{ __html: card.desc }} />
+                <Card
+                  size="small"
+                  style={{ width: 300 }}
+                  className={s.revCard}
+                  onClick={() => {
+                    setSelectedCardId(card.id);
+                  }}
+                >
+                  <div
+                    className={s.cardDesc}
+                    onClick={(e) => e.stopPropagation()}
+                    dangerouslySetInnerHTML={{ __html: snarkdown(card.desc) }}
+                  />
                   <Divider />
-                  <p>Due: {card.nextShowDate.toString()}</p>
+                  <DueDate date={card.due} />
                 </Card>
               )}
             ></List>
 
-            <Divider />
             <List
               header={<h2>Upcoming</h2>}
               className={s.reviseGrid}
-              dataSource={Array(6).fill(0)}
-              renderItem={(item) => (
-                <Card size="small" style={{ width: 300 }}>
-                  <p>Card content</p>
-                  <a href="https://www.google.com">code</a>
+              dataSource={cards.data?.filter((c) => c.due > new Date())}
+              renderItem={(card) => (
+                <Card
+                  size="small"
+                  className={s.revCard}
+                  style={{ width: 300 }}
+                  onClick={() => {
+                    setSelectedCardId(card.id);
+                  }}
+                >
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    dangerouslySetInnerHTML={{ __html: snarkdown(card.desc) }}
+                  />
                   <Divider />
-                  <p>Due: Today</p>
+                  <DueDate date={card.due} />
                 </Card>
               )}
             ></List>
-
-            <Drawer title="Basic Drawer" onClose={() => {}} open={false}>
-              <TextArea
-                onChange={(e) => {}}
-                placeholder="Content"
-                autoSize={{ minRows: 3, maxRows: 5 }}
+            <Drawer
+              title="Basic Drawer"
+              width={500}
+              onClose={() => {
+                setSelectedCardId(undefined);
+              }}
+              open={selectedCardId != undefined}
+              destroyOnClose
+            >
+              <CardDrawerContent
+                cardId={selectedCardId!}
+                onClose={() => setSelectedCardId(null)}
               />
-              <p> Due: Today </p>
-              <Flex gap="small" justify="end">
-                <Button >Save</Button>
-                <Button >Delete</Button>
-              </Flex>
-
-<Divider/>
-              <Flex gap="large" justify="center">
-                <Button>0</Button>
-                <Button>1</Button>
-                <Button>2</Button>
-                <Button>3</Button>
-                <Button>4</Button>
-              </Flex>
             </Drawer>
           </div>
         </Layout>
@@ -491,4 +333,129 @@ const Bookmarks = () => {
   );
 };
 
-export default Bookmarks;
+interface IDueDate {
+  date: Date;
+}
+
+const DueDate: React.FC<IDueDate> = ({ date }) => {
+  let color = "green";
+  if (date > new Date()) color = "purple";
+  return <Tag color={color}>{getDueFromNow(date)}</Tag>;
+};
+
+interface ICardDrawerContent {
+  cardId: number;
+  onClose: VoidFunction;
+}
+
+interface CardUpdate {
+  desc: string;
+}
+
+const CardDrawerContent: React.FC<ICardDrawerContent> = ({
+  cardId,
+  onClose,
+}) => {
+  const utils = trpc.useUtils();
+  const card = trpc.revise.getCard.useQuery<FullCard>({ cardId });
+  const descInputRef = React.useRef(null);
+  const editCard = trpc.revise.editCard.useMutation({
+    onSuccess: () => {
+      utils.revise.listCards.refetch();
+    },
+  });
+  const removeCard = trpc.revise.removeCard.useMutation({
+    onSuccess: async () => {
+      await utils.revise.listCards.refetch();
+      onClose();
+    },
+  });
+
+  const [updateCardForm] = Form.useForm<CardUpdate>();
+  const onRespondMutation = trpc.revise.reviewCard.useMutation({
+    onSuccess: () => {
+      utils.revise.getCard.refetch({ cardId });
+      utils.revise.listCards.refetch();
+    },
+  });
+  const onRespond = (rating: number) => {
+    onRespondMutation.mutate({ cardId, rating });
+  };
+
+  if (!card.data) return <div></div>;
+
+  return (
+    <Form
+      form={updateCardForm}
+      name="basic"
+      labelCol={{ span: 4 }}
+      wrapperCol={{ span: 20 }}
+    >
+      <Form.Item label="Desc" name="desc" required>
+        <TextArea
+          defaultValue={card.data.desc}
+          onChange={(e) => {}}
+          ref={descInputRef}
+          placeholder="Content"
+          autoSize={{ minRows: 3, maxRows: 5 }}
+        />
+      </Form.Item>
+      due: <Tag color="green">{getDueFromNow(card.data.due)}</Tag>
+      <Flex gap="small" justify="end">
+        <Button
+          onClick={() => {
+            removeCard.mutate({ cardId });
+          }}
+        >
+          Delete
+        </Button>
+        <Button
+          type="primary"
+          onClick={() => {
+            updateCardForm
+              .validateFields()
+              .then((values) => {
+                editCard.mutate({
+                  cardId,
+                  desc: values.desc,
+                });
+              })
+              .catch((e) => {
+                console.error(e);
+              });
+          }}
+        >
+          Save
+        </Button>
+      </Flex>
+      <Divider />
+      <Flex gap="large" justify="center">
+        <Button onClick={() => onRespond(1)} title="Again">
+          1
+        </Button>
+        <Button onClick={() => onRespond(2)} title="Hard">
+          2
+        </Button>
+        <Button onClick={() => onRespond(3)} title="Good">
+          3
+        </Button>
+        <Button onClick={() => onRespond(4)} title="Easy">
+          4
+        </Button>
+      </Flex>
+      <List
+        className={s.revLogs}
+        header={<div>Revision Logs</div>}
+        bordered
+        dataSource={card.data.reviseRevlog}
+        renderItem={(item) => (
+          <List.Item>
+            {`${item.review.toDateString()} - ${item.rating}`}
+          </List.Item>
+        )}
+      />
+    </Form>
+  );
+};
+
+export default Revise;

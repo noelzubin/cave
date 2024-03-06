@@ -109,7 +109,6 @@ const Bookmarks = () => {
       listBookmarkQuery
     );
   const tags = trpc.bookmark.listTags.useQuery<BmTag[]>();
-  console.log(tags.data);
 
 
   const onSelectBookmark = (id: number) => {

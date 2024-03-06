@@ -4,6 +4,9 @@
         display: flex
         flex-wrap: wrap
         gap: 1rem
+    :global(.ant-list-header)
+        border-block-end: none
+        padding-bottom: 0
 
 .feedMenuItem
     display: flex
@@ -12,3 +15,16 @@
     & > div:first-child
         overflow: hidden
         text-overflow: ellipsis
+
+.revCard 
+    :global(.ant-card-body)
+        .cardDesc
+            a
+                color: #1890ff
+                text-decoration: underline
+        :global(.ant-divider)
+            margin-top: 1rem
+            margin-bottom: 1rem
+
+.revLogs
+    margin-top: 1rem

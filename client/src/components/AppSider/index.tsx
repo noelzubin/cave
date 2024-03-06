@@ -10,7 +10,7 @@ const { Sider } = Layout;
 interface AppSiderProps {
     collapsed: boolean; // Show/Hide sidebar
     setCollapsed: (collapsed: boolean) => void; // set Hidebar collapsed
-    pageId: 'feeds' | 'bookmarks' // Current page
+    pageId: 'feeds' | 'bookmarks' | 'revise' // Current page
     children: React.ReactNode; 
 }
 

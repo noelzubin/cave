@@ -1,7 +1,17 @@
 import { DB } from "db";
-import {createEmptyCard, formatDate, fsrs, generatorParameters, Rating, Grades, State, Grade} from 'ts-fsrs';
+import {
+  createEmptyCard,
+  formatDate,
+  fsrs,
+  generatorParameters,
+  Rating,
+  Grades,
+  State,
+  Grade,
+  default_request_retention,
+} from "ts-fsrs";
 
-function dbg<T>(t: T) : T {
+function dbg<T>(t: T): T {
   console.log("DEBUG", JSON.stringify(t, null, 2));
   return t;
 }
@@ -11,20 +21,38 @@ export interface Deck {
   name: string;
 }
 
+export interface DeckWithCount extends Deck {
+  count: number;
+}
+
 export interface Card {
   id: number;
-  desc: string;
   deckId: number;
+  desc: string;
+  due: Date;
+  stability: number;
+  difficulty: number;
+  elapsedDays: number;
+  scheduledDays: number;
+  reps: number;
+  lapses: number;
+  state: number;
+  lastReview: Date | null;
+  createdAt: Date;
 }
 
 export interface Revlog {
   id: number;
   cardId: number;
-  lastInterval: number;
-  interval: number;
-  reviewTime: string;
+  due: Date;
   stability: number;
   difficulty: number;
+  elapsedDays: number;
+  lastElapsedDays: number;
+  scheduledDays: number;
+  state: number;
+  review: Date;
+  rating: number;
 }
 
 export interface FullCard extends Card {
@@ -46,7 +74,7 @@ export interface IReviseUsecase {
   listCards(deckId: number): Promise<Card[]>;
 
   // edit a card
-  editCard(cardId: number, data: Partial<Card>) : Promise<Card>;
+  editCard(cardId: number, data: Partial<Card>): Promise<Card>;
 
   // Get all info about a single card
   getCard(cardId: number): Promise<FullCard>;
@@ -73,35 +101,51 @@ export class ReviseUsecase implements IReviseUsecase {
     return deck;
   }
 
-  async listDecks(): Promise<Deck[]> {
-    const results = await this.db.reviseDecks.findMany();
-    return results;
+  async listDecks(): Promise<DeckWithCount[]> {
+    const results = await this.db.$queryRaw<DeckWithCount[]>`
+    select d.*, count(c.id) count 
+    from reviseDecks d 
+    left join reviseCards c
+    on d.id = c.deckId 
+    group by d.id order by count desc
+  `;
+    return results.map((r) => ({
+      ...r,
+      count: parseInt(r.count as unknown as string),
+    }));
   }
 
   listCards(deckId: number): Promise<Card[]> {
-    dbg(deckId)
-    return dbg(this.db.reviseCards.findMany({
-      where: { deckId },
-      orderBy: { nextShowDate: "asc"}
-    }))
+    dbg(deckId);
+    return dbg(
+      this.db.reviseCards.findMany({
+        where: { deckId },
+        orderBy: { due: "asc" },
+      })
+    );
   }
-
 
   async addCard(deckId: number, desc: string): Promise<Card> {
     const card = await this.db.reviseCards.create({
       data: {
         deckId,
         desc,
-        nextShowDate: new Date(),
+        due: new Date(),
+        stability: 0,
+        difficulty: 0,
+        elapsedDays: 0,
+        scheduledDays: 0,
+        reps: 0,
+        lapses: 0,
+        state: 0,
       },
     });
     return card;
   }
 
- async editCard(cardId: number, data: Partial<Card>) : Promise<Card> {
-   return this.updateCard(cardId, data);
- }
-
+  async editCard(cardId: number, data: Partial<Card>): Promise<Card> {
+    return this.updateCard(cardId, data);
+  }
 
   async updateCard(id: number, data: Partial<Card>): Promise<Card> {
     return this.db.reviseCards.update({
@@ -117,30 +161,64 @@ export class ReviseUsecase implements IReviseUsecase {
     });
   }
 
-  async reviewCard(cardId: number, grade: Grade){
-
+  async reviewCard(cardId: number, grade: Grade) {
+    const crd = await this.getCard(cardId);
     const lastReview = await this.getLastReview(cardId);
-    const params = generatorParameters({ enable_fuzz: true });
-    // params.request_retention = .
 
+    const requestRetention = default_request_retention;
+    const params = generatorParameters({
+      enable_fuzz: true,
+      request_retention: requestRetention,
+    });
 
-    const daysElapsed = lastReview ? Math.floor((new Date().getTime() - new Date(lastReview.reviewTime).getTime()) / (1000 * 60 * 60 * 24)) : 0;
+    const card = createEmptyCard();
 
-    const card = createEmptyCard()
     if (lastReview) {
-      card.difficulty = lastReview.difficulty;
-      card.stability = lastReview.stability
-      card.elapsed_days = daysElapsed;
-      card.state = State.Review;
+      card.due = crd.due;
+      card.stability = crd.stability;
+      card.difficulty = crd.difficulty;
+      card.elapsed_days = crd.elapsedDays;
+      card.scheduled_days = crd.scheduledDays;
+      card.reps = crd.reps;
+      card.lapses = crd.lapses;
+      card.state = crd.state;
+      card.last_review = crd.lastReview;
     }
+
     const f = fsrs(params);
     let schedulingCards = f.repeat(card, new Date());
-    console.log(JSON.stringify(schedulingCards[grade], null, 2));
+
+    const next = schedulingCards[grade];
+    await this.updateCard(cardId, {
+      due: next.card.due,
+      stability: next.card.stability,
+      difficulty: next.card.difficulty,
+      elapsedDays: next.card.elapsed_days,
+      scheduledDays: next.card.scheduled_days,
+      reps: next.card.reps,
+      lapses: next.card.lapses,
+      state: next.card.state,
+      lastReview: next.card.last_review,
+    });
+    await this.addReview({
+      cardId,
+      due: next.log.due,
+      stability: next.log.stability,
+      difficulty: next.log.difficulty,
+      elapsedDays: next.log.elapsed_days,
+      lastElapsedDays: next.log.last_elapsed_days,
+      scheduledDays: next.log.scheduled_days,
+      review: next.log.review,
+      rating: next.log.rating,
+      state: next.log.state,
+    });
   }
 
-
   async removeCard(id: number) {
-    this.db.reviseCards.delete({
+    await this.db.reviseRevlog.deleteMany({
+      where: { cardId: id },
+    });
+    await this.db.reviseCards.delete({
       where: { id },
     });
   }
@@ -148,7 +226,7 @@ export class ReviseUsecase implements IReviseUsecase {
   async getLastReview(id: number): Promise<Revlog | null> {
     return this.db.reviseRevlog.findFirst({
       where: { cardId: id },
-      orderBy: { reviewTime: "desc" },
+      orderBy: { review: "desc" },
     });
   }
 

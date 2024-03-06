@@ -25,3 +25,12 @@ export const getRelDate = (date: Date) => {
 
     return `${years.toFixed()}y`
 }
+
+export const getDueFromNow = (date: Date) => {
+    const days = (Date.now() - date.getTime()) / 86400000;
+    if (days > 0) {
+        if (days < 1) return 'today'
+        else return `${Math.floor(days)} days ago`
+    }
+    return `in ${Math.ceil(-days)} days`
+}

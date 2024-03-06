@@ -27,12 +27,57 @@ export const reviseRouter = createTRPCRouter({
       const card = await ctx.reviseUsecase.addCard(input.deckId, input.desc);
       return card;
     }),
+
+  removeCard: publicProcedure
+    .input(
+      z.object({
+        cardId: z.number(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const card = await ctx.reviseUsecase.removeCard(input.cardId);
+      return card;
+    }),
+  editCard: publicProcedure
+    .input(
+      z.object({
+        cardId: z.number(),
+        desc: z.string(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const card = await ctx.reviseUsecase.editCard(input.cardId, {
+        desc: input.desc,
+      });
+      return card;
+    }),
   listCards: publicProcedure
-    .input(z.object({
-      deckId: z.number(),
-    }))
+    .input(
+      z.object({
+        deckId: z.number(),
+      })
+    )
     .query(async ({ ctx, input }) => {
       return ctx.reviseUsecase.listCards(input.deckId);
+    }),
+  getCard: publicProcedure
+    .input(
+      z.object({
+        cardId: z.number(),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      return ctx.reviseUsecase.getCard(input.cardId);
+    }),
+  reviewCard: publicProcedure
+    .input(
+      z.object({
+        cardId: z.number(),
+        rating: z.number(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      return ctx.reviseUsecase.reviewCard(input.cardId, input.rating);
     }),
   editBookmark: publicProcedure
     .input(
