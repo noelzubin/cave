@@ -120,9 +120,10 @@ const server = command({
 
     server.register(cors, {});
 
+    console.log(path.join(path.resolve(), "/dist/client"))
     server.register(fastifyStatic, {
       prefix: "/",
-      root: path.join(path.resolve(), "./dist/client"),
+      root: path.join(path.resolve(), "/dist/client"),
     });
 
     server.register(fastifyTRPCPlugin, {

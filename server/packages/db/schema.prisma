@@ -51,7 +51,7 @@ model bookmark {
   imageUrl    String?
   description String?
   faviconUrl  String?
-  createdAt   String        @default("CURRENT_TIMESTAMP")
+  createdAt   DateTime?     @default(now())
   bookmarkTag bookmarkTag[]
 }
 
