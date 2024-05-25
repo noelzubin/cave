@@ -14,6 +14,7 @@ import {
   Select,
   Switch,
   Tag,
+  Table,
 } from "antd";
 import snarkdown from "snarkdown";
 import { ItemType } from "antd/es/menu/hooks/useItems";
@@ -41,6 +42,27 @@ interface DeckCreate {
   name: string;
 }
 
+const columns = [
+  {
+    key: "Title",
+    title: "Title",
+    dataIndex: "desc",
+    render: (desc: string) => (
+      <div
+        className={s.cardDesc}
+        onClick={(e) => e.stopPropagation()}
+        dangerouslySetInnerHTML={{ __html: snarkdown(desc) }}
+      />
+    ),
+  },
+  {
+    key: "Due",
+    title: "Due",
+    dataIndex: "due",
+    render: (due: Date) => <DueDate date={due} />,
+  },
+];
+
 const Revise = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [query, setQuery] = useState("");
@@ -54,7 +76,6 @@ const Revise = () => {
   const [selectedDeckId, setSelectedDeckId] = useState<number>(1); // Notes is selected by default
   const [listCardsQuery, setListCardsQuery] = useState({});
   const [selectedCardId, setSelectedCardId] = useState<number | null>();
-
 
   const debQuery = useDebounce(query, 500);
   const utils = trpc.useUtils();
@@ -264,54 +285,18 @@ const Revise = () => {
               </div>
             </Card>
           )}
-
           <div style={{ margin: "1rem" }}>
-            <List
-              header={<h2>Ready</h2>}
-              className={s.reviseGrid}
-              dataSource={cards.data?.filter((c) => c.due < new Date())}
-              renderItem={(card) => (
-                <Card
-                  size="small"
-                  style={{ width: 300 }}
-                  className={s.revCard}
-                  onClick={() => {
+            <Table
+              columns={columns}
+              dataSource={cards.data}
+              onRow={(card) => {
+                return {
+                  onClick: (e) => {
                     setSelectedCardId(card.id);
-                  }}
-                >
-                  <div
-                    className={s.cardDesc}
-                    onClick={(e) => e.stopPropagation()}
-                    dangerouslySetInnerHTML={{ __html: snarkdown(card.desc) }}
-                  />
-                  <Divider />
-                  <DueDate date={card.due} />
-                </Card>
-              )}
-            ></List>
-
-            <List
-              header={<h2>Upcoming</h2>}
-              className={s.reviseGrid}
-              dataSource={cards.data?.filter((c) => c.due > new Date())}
-              renderItem={(card) => (
-                <Card
-                  size="small"
-                  className={s.revCard}
-                  style={{ width: 300 }}
-                  onClick={() => {
-                    setSelectedCardId(card.id);
-                  }}
-                >
-                  <div
-                    onClick={(e) => e.stopPropagation()}
-                    dangerouslySetInnerHTML={{ __html: snarkdown(card.desc) }}
-                  />
-                  <Divider />
-                  <DueDate date={card.due} />
-                </Card>
-              )}
-            ></List>
+                  },
+                };
+              }}
+            />
             <Drawer
               title="Basic Drawer"
               width={500}
