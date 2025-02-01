@@ -43,7 +43,6 @@ const AppSider: FC<AppSiderProps> = ({ collapsed, setCollapsed, children, pageId
             options={[
                 { path: "/", value: 'feeds', label: <div> <Avatar icon={<WifiOutlined />} /> <span> Feeds </span> </div> },
                 { path: "/bookmarks", value: 'bookmarks', label: <div> <Avatar icon={<TagOutlined />} /> <span> Bookmarks </span> </div> },
-                { path: "/revise", value: 'revise', label: <div> <Avatar icon={<ClockCircleOutlined />} /> <span> Revise </span> </div> },
             ]}
         />
         {children}

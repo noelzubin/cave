@@ -123,10 +123,10 @@ const FeedsList: FC<IFeedsProps> = ({
             ]}
           >
             <div className={s.entry}>
-              <span>
+              <div className={s.entryTitle}>
                 {renderFeedName(item)}
                 <span className={s.title}>{item.title}</span>
-              </span>
+              </div>
               <span className={s.pubTime}>{getRelDate(item.pubTime)}</span>
             </div>
           </List.Item>
