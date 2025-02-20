@@ -4,7 +4,7 @@ import { fastifyTRPCPlugin } from "@trpc/server/adapters/fastify";
 import { DB, prisma } from "db";
 import fastify from "fastify";
 import path from "path";
-import { Rss, RssParser } from "rss";
+import { Rss, RssParser } from "../lib/rss/index.ts";
 import { appRouter } from "./api/root.js";
 import { createContext } from "./api/trpc.js";
 import { BookmarkUsecase, IBookmarkUsecase } from "./usecase/bookmark.js";

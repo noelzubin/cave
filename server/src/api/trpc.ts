@@ -1,7 +1,7 @@
 import { initTRPC } from "@trpc/server";
 import { CreateFastifyContextOptions } from "@trpc/server/adapters/fastify";
 import { DB, prisma } from "db";
-import { Rss, RssParser } from "rss";
+import { Rss, RssParser } from "../../lib/rss/index.ts";
 import superjson from "superjson";
 import { ZodError } from "zod";
 import { BookmarkUsecase, IBookmarkUsecase } from "../usecase/bookmark.js";

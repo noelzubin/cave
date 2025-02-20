@@ -1,8 +1,8 @@
 import type { DB } from "db";
 import type { Prisma } from "db/node_modules/@prisma/client";
 // import pLimit from 'p-limit';
-import type { Rss } from "rss";
-import { Youtube } from "youtube";
+import type { Rss } from "../../lib/rss/index.ts";
+import { Youtube } from "../../lib/youtube/index.ts";
 
 // const limit = pLimit(5);
 
