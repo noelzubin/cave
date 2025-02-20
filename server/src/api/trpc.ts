@@ -1,11 +1,11 @@
 import { initTRPC } from "@trpc/server";
-import { CreateFastifyContextOptions } from "@trpc/server/adapters/fastify";
-import { DB, prisma } from "db";
-import { Rss, RssParser } from "../../lib/rss/index.ts";
+import type { CreateFastifyContextOptions } from "@trpc/server/adapters/fastify";
+import { type DB, prisma } from "../../lib/db/index.ts";
+import { type Rss, RssParser } from "../../lib/rss/index.ts";
 import superjson from "superjson";
 import { ZodError } from "zod";
-import { BookmarkUsecase, IBookmarkUsecase } from "../usecase/bookmark.js";
-import { FeedUsecase, IFeedUsecase } from "../usecase/feeds.js";
+import { BookmarkUsecase, type IBookmarkUsecase } from "../usecase/bookmark.ts";
+import { FeedUsecase, type IFeedUsecase } from "../usecase/feeds.ts";
 
 const db: DB = prisma;
 const rss: Rss = new RssParser();

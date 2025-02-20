@@ -1,14 +1,14 @@
 import cors from "@fastify/cors";
 import fastifyStatic from "@fastify/static";
 import { fastifyTRPCPlugin } from "@trpc/server/adapters/fastify";
-import { DB, prisma } from "db";
+import { type DB, prisma } from "../lib/db/index.ts";
 import fastify from "fastify";
 import path from "path";
-import { Rss, RssParser } from "../lib/rss/index.ts";
-import { appRouter } from "./api/root.js";
-import { createContext } from "./api/trpc.js";
-import { BookmarkUsecase, IBookmarkUsecase } from "./usecase/bookmark.js";
-import { FeedUsecase, IFeedUsecase, ListEntriesInput } from "./usecase/feeds.js";
+import { type Rss, RssParser } from "../lib/rss/index.ts";
+import { appRouter } from "./api/root.ts";
+import { createContext } from "./api/trpc.ts";
+import { BookmarkUsecase, type IBookmarkUsecase } from "./usecase/bookmark.ts";
+import { FeedUsecase, type IFeedUsecase, type ListEntriesInput } from "./usecase/feeds.ts";
 import {
   command,
   binary,

@@ -1,6 +1,6 @@
 
 import { PrismaClient } from "@prisma/client";
-import { env } from "../../../lib/env/index.ts";
+import { env } from "../../lib/env/index.ts";
 
 export type DB = PrismaClient;
 

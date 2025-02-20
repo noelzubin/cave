@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { createTRPCRouter, publicProcedure } from "../trpc.js";
+import { createTRPCRouter, publicProcedure } from "../trpc.ts";
 
 export const bookmarkRouter = createTRPCRouter({
   addBookmark: publicProcedure

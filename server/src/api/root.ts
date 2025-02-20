@@ -1,6 +1,6 @@
-import { feedRouter } from "./routers/feed.js";
-import { createTRPCRouter } from "./trpc.js";
-import { bookmarkRouter } from "./routers/bookmark.js";
+import { feedRouter } from "./routers/feed.ts";
+import { createTRPCRouter } from "./trpc.ts";
+import { bookmarkRouter } from "./routers/bookmark.ts";
 
 /**
  * This is the primary router for your server.

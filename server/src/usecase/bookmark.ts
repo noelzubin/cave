@@ -1,6 +1,6 @@
-import { DB } from "db";
-import { Prisma } from "db/node_modules/@prisma/client";
-import { run } from 'open-graph-scraper';
+import type { DB } from "../../lib/db/index.ts";
+import type { Prisma } from "../../node_modules/@prisma/client/index.d.ts";
+import { run } from "open-graph-scraper";
 
 export interface EditBookmarkOptions {
   title?: string;
@@ -42,7 +42,7 @@ export interface IBookmarkUsecase {
   ): Promise<Bookmark>;
   // Delete a bookmark
   deleteBookmark(id: number): Promise<void>;
-  // List bookmarks by input 
+  // List bookmarks by input
   listBookmarks(input: ListBookmarksInput): Promise<ListBookmarksResponse>;
   // Create a new tag
   createTag(name: string): Promise<Tag>;
@@ -50,16 +50,16 @@ export interface IBookmarkUsecase {
   editBookmark(id: number, options: EditBookmarkOptions): Promise<void>;
   // List all tags
   listTags(): Promise<Tag[]>;
-  // Bulk add tags to multiple bookmarks. 
+  // Bulk add tags to multiple bookmarks.
   bulkUpdateBookmarks(ids: number[], tagIds: number[]): Promise<void>;
 }
 
-// Input to filter listing bookmarks   
+// Input to filter listing bookmarks
 export interface ListBookmarksInput {
   skip?: number; // pagination skip
   take?: number; // pagination pageSize
-  tags?: number[]; // Filter by tags 
-  query?: string; // filter title or url for given query 
+  tags?: number[]; // Filter by tags
+  query?: string; // filter title or url for given query
 }
 
 type OptString = string | undefined;
@@ -79,10 +79,10 @@ export class BookmarkUsecase implements IBookmarkUsecase {
 
   /**
    * Add a new bookmark.
-   * By default adds the current url as title and url for the bookmark.  
+   * By default adds the current url as title and url for the bookmark.
    * If the url is reachable and has metadata, fills those as well into the url
    * asyncrhonously.
-   */ 
+   */
   async addBookmark(
     url: string,
     title?: string,
@@ -216,8 +216,11 @@ export class BookmarkUsecase implements IBookmarkUsecase {
       },
       data: {
         title: coalesce(title, oldBookmark.title),
-        description: coalesce(description, oldBookmark.description ?? undefined),
-        imageUrl:  coalesce(imageUrl, oldBookmark.imageUrl ?? undefined),
+        description: coalesce(
+          description,
+          oldBookmark.description ?? undefined
+        ),
+        imageUrl: coalesce(imageUrl, oldBookmark.imageUrl ?? undefined),
       },
     });
 
