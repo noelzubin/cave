@@ -5,6 +5,8 @@
       "moduleResolution": "NodeNext",
       "outDir": "./dist",
       "declaration": true,
-      "declarationMap": true
+      "declarationMap": true,
+      "noEmit": true,
+      "allowImportingTsExtensions": true
     }
   }

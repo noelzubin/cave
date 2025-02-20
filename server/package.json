@@ -22,7 +22,6 @@
     "chalk": "^5.3.0",
     "cmd-ts": "^0.13.0",
     "db": "workspace:*",
-    "env": "workspace:*",
     "fastify": "^4.24.3",
     "mongoose": "^8.0.3",
     "open-graph-scraper": "github:noelzubin/openGraphScraper",
