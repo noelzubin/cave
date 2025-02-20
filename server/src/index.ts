@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import cors from "@fastify/cors";
 import fastifyStatic from "@fastify/static";
 import { fastifyTRPCPlugin } from "@trpc/server/adapters/fastify";
@@ -194,7 +195,8 @@ const bookmarkList = command({
   description: 'List all bookmarks',
   args: {},
   handler: async () => {
-    await bookmarkUsecase.listBookmarks({ skip: 0, take: 50 });
+    const bookmarks = await bookmarkUsecase.listBookmarks({ skip: 0, take: 50 });
+    console.log(bookmarks)
   },
 });
 

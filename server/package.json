@@ -4,9 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "tsc",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "./scripts/dev.fish"
+    "dev": "node --experimental-strip-types src/index.ts"
   },
   "keywords": [],
   "author": "",
@@ -20,6 +19,7 @@
     "axios": "^1.7.9",
     "chalk": "^5.3.0",
     "cmd-ts": "^0.13.0",
+    "dotenv": "^16.4.7",
     "fastify": "^4.24.3",
     "mongoose": "^8.0.3",
     "open-graph-scraper": "github:noelzubin/openGraphScraper",
