@@ -229,6 +229,16 @@ const bookmarkEdit = command({
   }
 })
 
+// Auto assign tags to bookmarks
+const autoAssignTags = command({ 
+  name: 'auto-assign-tags',
+  description: 'Auto assign tags to bookmarks using ai',
+  args: {},
+  handler: async () => {
+    await bookmarkUsecase.autoAssignTags();
+  }
+});
+
 const bookmark = subcommands({
   name: "bookmarks",
   description: "Manage bookmarks",
@@ -238,6 +248,7 @@ const bookmark = subcommands({
     'list': bookmarkList,
     'edit': bookmarkEdit,
     'create-tag': createTag,
+    'auto-assign-tags': autoAssignTags,
   }
 });
 

@@ -1,6 +1,7 @@
 import type { DB } from "../../lib/db/index.ts";
 import type { Prisma } from "../../node_modules/@prisma/client/index.d.ts";
 import { run } from "open-graph-scraper";
+import ollama from "ollama";
 
 export interface EditBookmarkOptions {
   title?: string;
@@ -52,6 +53,7 @@ export interface IBookmarkUsecase {
   listTags(): Promise<Tag[]>;
   // Bulk add tags to multiple bookmarks.
   bulkUpdateBookmarks(ids: number[], tagIds: number[]): Promise<void>;
+  autoAssignTags(): Promise<void>;
 }
 
 // Input to filter listing bookmarks
@@ -256,8 +258,85 @@ export class BookmarkUsecase implements IBookmarkUsecase {
 
     await this.db.$queryRawUnsafe(`
       INSERT OR IGNORE INTO bookmarkTag (bookmarkId, tagId) VALUES ${values.join(
-        ", "
-      )}
+      ", "
+    )}
     `);
   }
+
+
+
+  async autoAssignTags(): Promise<void> {
+    const tags = await this.db.tag.findMany();
+
+    const tagEmbeddings: TagEmbedddings = {};
+    await Promise.all(tags.map(async (tag) => {
+      tagEmbeddings[tag.id] = { embeddings: await getEmbeddings(tag.name), name: tag.name };
+    }));
+
+    const bookmarks = await this.db.bookmark.findMany({
+      include: {
+        bookmarkTag: true,
+      },
+      where: {
+        id: {
+          gt: 500
+        }
+      }
+    });
+
+    for (let bookmark of bookmarks) {
+      console.log(bookmark.id + "\t" + bookmark.url);
+      if (bookmark.bookmarkTag.length) { continue }
+
+      const newTags = await suggestTagsForBookmark(bookmark, tagEmbeddings);
+      await this.db.bookmarkTag.createMany({
+        data: newTags.map((tag) => ({ bookmarkId: bookmark.id, tagId: parseInt(tag.tagId) }))
+      })
+    }
+
+  }
 }
+
+type TagEmbedddings = { [key: number]: { embeddings: number[], name: string } };
+
+const suggestTagsForBookmark = async (bookmark: Partial<Bookmark>, tagEmbeddings: TagEmbedddings) => {
+  const BOOKMARK_PROMPT = "Assign closest programming related tag for the new bookmark in my bookmark manager \n"
+  const bookmark_embedddings = await getEmbeddings(
+    BOOKMARK_PROMPT + bookmark.url + " " + (bookmark.title ?? "") + " " + (bookmark.description ?? "")
+  );
+
+  let results: any[] = [];
+
+  Object.keys(tagEmbeddings).forEach((tagId) => {
+    const tag = tagEmbeddings[tagId];
+    const similarity2 = cosineSimilarity(bookmark_embedddings, tag.embeddings);
+    results.push({ tagId, similarity2, name: tag.name });
+  })
+
+  results = results
+    .sort((a, b) => b.similarity2 - a.similarity2)
+
+  const moreThan0_5 = results.filter((r) => r.similarity2 > 0.5);
+  const moreThan0_475 = results.filter((r) => r.similarity2 > 0.475);
+
+  if (moreThan0_5.length) {
+    return moreThan0_5.slice(0, 3);
+  } else if (moreThan0_475.length) {
+    return [results[0]]
+  } else { return [] }
+}
+
+// Calculate cosine similarity between two vectors
+const cosineSimilarity = (vec1: number[], vec2: number[]): number => {
+  const dotProduct = vec1.reduce((sum, val, i) => sum + val * vec2[i], 0);
+  const magnitude1 = Math.sqrt(vec1.reduce((sum, val) => sum + val * val, 0));
+  const magnitude2 = Math.sqrt(vec2.reduce((sum, val) => sum + val * val, 0));
+  return dotProduct / (magnitude1 * magnitude2);
+}
+
+
+// Get embeddings from ollama 
+const getEmbeddings = async (prompt: string) => {
+  const res = await ollama.embeddings({ model: "nomic-embed-text", prompt });
+  return res.embedding;
+};
