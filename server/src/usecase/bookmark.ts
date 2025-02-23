@@ -2,6 +2,8 @@ import type { DB } from "../../lib/db/index.ts";
 import type { Prisma } from "../../node_modules/@prisma/client/index.d.ts";
 import { run } from "open-graph-scraper";
 import ollama from "ollama";
+import { z } from 'zod';
+import { zodToJsonSchema } from 'zod-to-json-schema'
 
 export interface EditBookmarkOptions {
   title?: string;
@@ -268,11 +270,6 @@ export class BookmarkUsecase implements IBookmarkUsecase {
   async autoAssignTags(): Promise<void> {
     const tags = await this.db.tag.findMany();
 
-    const tagEmbeddings: TagEmbedddings = {};
-    await Promise.all(tags.map(async (tag) => {
-      tagEmbeddings[tag.id] = { embeddings: await getEmbeddings(tag.name), name: tag.name };
-    }));
-
     const bookmarks = await this.db.bookmark.findMany({
       include: {
         bookmarkTag: true,
@@ -284,59 +281,50 @@ export class BookmarkUsecase implements IBookmarkUsecase {
       }
     });
 
+    const tagsIndexed = tags.reduce((acc, tag) => {
+      acc[tag.name] = tag.id;
+      return acc;
+    }, {})
+
     for (let bookmark of bookmarks) {
       console.log(bookmark.id + "\t" + bookmark.url);
       if (bookmark.bookmarkTag.length) { continue }
 
-      const newTags = await suggestTagsForBookmark(bookmark, tagEmbeddings);
-      await this.db.bookmarkTag.createMany({
-        data: newTags.map((tag) => ({ bookmarkId: bookmark.id, tagId: parseInt(tag.tagId) }))
-      })
+
+      try {
+
+        const newTags = await suggestTagsForBookmark(bookmark, tags);
+        console.log("New tags: ", newTags);
+        const tagIds = newTags.map((tag) => tagsIndexed[tag]);
+        await this.db.bookmarkTag.createMany({
+          data: tagIds.map((tagId) => ({ bookmarkId: bookmark.id, tagId: tagId }))
+        })
+      } catch (e) {
+        console.log("Error", e);
+      }
     }
 
   }
 }
 
-type TagEmbedddings = { [key: number]: { embeddings: number[], name: string } };
+const TagsSchema = z.array(z.string());
 
-const suggestTagsForBookmark = async (bookmark: Partial<Bookmark>, tagEmbeddings: TagEmbedddings) => {
-  const BOOKMARK_PROMPT = "Assign closest programming related tag for the new bookmark in my bookmark manager \n"
-  const bookmark_embedddings = await getEmbeddings(
-    BOOKMARK_PROMPT + bookmark.url + " " + (bookmark.title ?? "") + " " + (bookmark.description ?? "")
+const suggestTagsForBookmark = async (bookmark: Partial<Bookmark>, tags: Partial<Tag>[]) => {
+  let BOOKMARK_PROMPT = "I want to assign tags to this new bookmark. Can you return a list of tags as an array from the list of available tags. Return an empty array if none of the tags match. Do not create new tags. The list of available tags are: \n";
+  BOOKMARK_PROMPT += tags.map((tag) => tag.name).join(", ") + "\n\n";
+  BOOKMARK_PROMPT += "New Bookmark:\n" + bookmark.url + "\n" + (bookmark.title ?? "") + "\n" + (bookmark.description ?? "");
+
+  const jsonSchema = zodToJsonSchema(TagsSchema);
+  const response = await ollama.chat({
+    model: 'llama3.1',
+    messages: [{ role: 'user', content: BOOKMARK_PROMPT }],
+    format: jsonSchema,
+    options: {
+      temperature: 0,
+    },
+  });
+  const newTags = TagsSchema.parse(
+    JSON.parse(response.message.content)
   );
-
-  let results: any[] = [];
-
-  Object.keys(tagEmbeddings).forEach((tagId) => {
-    const tag = tagEmbeddings[tagId];
-    const similarity2 = cosineSimilarity(bookmark_embedddings, tag.embeddings);
-    results.push({ tagId, similarity2, name: tag.name });
-  })
-
-  results = results
-    .sort((a, b) => b.similarity2 - a.similarity2)
-
-  const moreThan0_5 = results.filter((r) => r.similarity2 > 0.5);
-  const moreThan0_475 = results.filter((r) => r.similarity2 > 0.475);
-
-  if (moreThan0_5.length) {
-    return moreThan0_5.slice(0, 3);
-  } else if (moreThan0_475.length) {
-    return [results[0]]
-  } else { return [] }
+  return newTags;
 }
-
-// Calculate cosine similarity between two vectors
-const cosineSimilarity = (vec1: number[], vec2: number[]): number => {
-  const dotProduct = vec1.reduce((sum, val, i) => sum + val * vec2[i], 0);
-  const magnitude1 = Math.sqrt(vec1.reduce((sum, val) => sum + val * val, 0));
-  const magnitude2 = Math.sqrt(vec2.reduce((sum, val) => sum + val * val, 0));
-  return dotProduct / (magnitude1 * magnitude2);
-}
-
-
-// Get embeddings from ollama 
-const getEmbeddings = async (prompt: string) => {
-  const res = await ollama.embeddings({ model: "nomic-embed-text", prompt });
-  return res.embedding;
-};
