@@ -18,6 +18,5 @@ See `.env.example` file
 * Bookmark manager
 
 ### Screenshots
-<img src="screenshots/ss1.jpg" width="600" />
-<img src="screenshots/ss2.jpg" width="600" />
-<img src="screenshots/ss3.jpg" width="600" />
+<img src="https://i.imgur.com/s3caDFY.png" width="600" />
+<img src="https://i.imgur.com/kUXeM9L.png" width="600" />
